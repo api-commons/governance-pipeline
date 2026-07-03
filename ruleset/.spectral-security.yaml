@@ -1,0 +1,41 @@
+# =============================================================================
+# ACME API Security Ruleset  (EXAMPLE)
+# -----------------------------------------------------------------------------
+# Security is a FIRST-CLASS governance concern, not a footnote inside the design
+# ruleset — so it lives in its own file and runs in its own CI job (see
+# starter/api-governance.yml). Only 14% of the 1,005 surveyed pipelines had any
+# security rules at all; a dedicated security job is one of the rarest and most
+# valuable parts of the blueprint (exemplar: geobeyond/fastgeoapi).
+#
+# Here we DO inherit — but on purpose, and from a source with real provenance:
+# the OWASP API Security Top 10 ruleset maintained for Spectral. Inheriting a
+# security standard authored by domain experts is exactly the right kind of
+# reuse; inheriting a generic style-linter's defaults and calling it governance
+# is not. We pin it by exact version in the pipeline (see the workflow).
+#
+#   npm i -D @stoplight/spectral-owasp-ruleset@2.0.1
+# =============================================================================
+
+extends:
+  - "@stoplight/spectral-owasp-ruleset"
+
+formats:
+  - oas3
+
+# Layer your own security house-rules on top of OWASP here. Example: require
+# that every operation explicitly declares `security` (even if `[]` to opt out,
+# which forces an intentional decision rather than silent inheritance).
+rules:
+  acme-security-operation-declared:
+    description: >-
+      Every operation MUST make an explicit security decision — either reference
+      a scheme or declare `security: []` to consciously opt out. Silent
+      inheritance of the global default is how unprotected endpoints ship
+      unnoticed. This is our house-rule on top of the OWASP baseline.
+    message: 'Operation does not declare `security` explicitly ({{path}})'
+    documentationUrl: https://handbook.acme.example/api/rules/security-operation-declared
+    severity: warn
+    given: "$.paths[*][get,put,post,delete,patch]"
+    then:
+      field: security
+      function: defined

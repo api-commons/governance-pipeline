@@ -1,0 +1,192 @@
+# =============================================================================
+# API Governance pipeline  —  the reference blueprint, copy-paste ready.
+# From "The State of Spectral in API Pipelines" (API Evangelist).
+# Drop this in `.github/workflows/api-governance.yml`, adjust the paths at the
+# top, and commit. Every decision below is commented with the research finding
+# it fixes and the real pipeline that already proved the piece works.
+#
+# The blueprint is nothing exotic — it is a kit of parts real teams shipped,
+# assembled together for the first time:
+#   PR + push triggers, path-filtered  ·  Spectral pinned by commit SHA  ·
+#   an OWNED ruleset  ·  a separate OWASP security job  ·  a human-readable
+#   report artifact  ·  optional SARIF to code scanning  ·  few blocking rules.
+# =============================================================================
+
+name: API Governance
+
+# -----------------------------------------------------------------------------
+# WHY pull_request AND push, and WHY the `paths:` filter.
+# -----------------------------------------------------------------------------
+# Finding: a THIRD of the 1,005 pipelines lint only on push-to-main — i.e. AFTER
+# the merge they were supposed to prevent. Governance that runs after the merge
+# reports a decision instead of informing it. So we gate on `pull_request`: the
+# last cheap point on the cost gradient, before the spec is in.
+# We ALSO run on push to `main` so the main branch always has a fresh baseline
+# and report — but the PR is the gate.
+#
+# The `paths:` filter (only 22% of the corpus had one) means the job runs ONLY
+# when the API spec or the ruleset actually changed — not on every unrelated
+# commit. It is both the intent and the efficiency the rest of the corpus lacks.
+# Exemplar: mongodb/openapi (SHA-pin + path filter).
+on:
+  pull_request:
+    paths:
+      - "openapi.yaml"          # <-- your spec(s)
+      - "openapi.yml"
+      - "apis/**/*.yaml"
+      - "ruleset/**"            # <-- re-lint when the RULES change too
+      - ".github/workflows/api-governance.yml"
+  push:
+    branches: [main]
+    paths:
+      - "openapi.yaml"
+      - "openapi.yml"
+      - "apis/**/*.yaml"
+      - "ruleset/**"
+      - ".github/workflows/api-governance.yml"
+
+# Least-privilege token. `security-events: write` is only needed for the
+# optional SARIF upload in the security job; drop it if you don't use code scanning.
+permissions:
+  contents: read
+  pull-requests: write      # so the report/annotations can surface on the PR
+  security-events: write    # for the optional SARIF upload to code scanning
+
+jobs:
+  # ===========================================================================
+  # JOB 1 — DESIGN GOVERNANCE
+  # Runs the OWNED design ruleset, produces a human-readable report, gates the
+  # build only on `error`-severity findings.
+  # ===========================================================================
+  governance:
+    name: API design governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # WHY pin Spectral by COMMIT SHA.
+      # -----------------------------------------------------------------------
+      # Finding: of the 215 pipelines using the official Action, 101 float on
+      # `@latest` and only 14 pin to a specific commit. A governance tool on
+      # `@latest` can change behavior under you between one Tuesday and the next,
+      # with no commit in your repo and no line in your changelog — the thing
+      # enforcing your rules is itself ungoverned. Pinning by SHA makes exactly
+      # what runs a reviewable fact. The comment records the human-readable tag
+      # so the pin is legible. Exemplar: mongodb/openapi.
+      - name: Lint & annotate the PR (Spectral, SHA-pinned)
+        # stoplightio/spectral-action  v0.8.13
+        uses: stoplightio/spectral-action@6416fd018ae38e60136775066eb3e98172143141
+        with:
+          file_glob: "openapi.yaml"          # <-- your spec glob
+          spectral_ruleset: "ruleset/.spectral.yaml"   # <-- the OWNED ruleset
+          # The Action fails the check on `error` findings and posts inline
+          # annotations on the diff — governance where the reviewer already is.
+
+      # -----------------------------------------------------------------------
+      # WHY a human-readable REPORT, not just a pass/fail.
+      # -----------------------------------------------------------------------
+      # Finding: SARIF appears in ~3% of pipelines and a readable report/summary
+      # in ~7%. A linter by nature only tells people what is WRONG — every
+      # encounter with governance becomes an encounter with your failures. The
+      # report inverts that: it can show "82% already comply" (see the positive
+      # twin rules) and a trend over time — a scoreboard, not a scolding.
+      #
+      # Node + the CLI are pinned by exact version for the same reason we
+      # SHA-pin the Action: what runs is chosen on purpose.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Lint to JSON for the report
+        # `|| true`: Spectral exits non-zero on findings; we don't want that to
+        # abort BEFORE the report is generated. The Action step above is the
+        # real gate — this step exists only to feed the reporter.
+        run: |
+          npx --yes @stoplight/spectral-cli@6.16.1 lint \
+            -r ruleset/.spectral.yaml \
+            -f json \
+            --output spectral.json \
+            "openapi.yaml" || true
+
+      - name: Render the governance report (HTML)
+        # @api-common/spectral-reporter -> reporter.apicommons.org
+        run: |
+          npx --yes @api-common/spectral-reporter@0.1.0 \
+            spectral.json \
+            -o governance-report.html \
+            --title "Widgets API — Governance Report"
+
+      - name: Upload the report artifact
+        if: always()   # publish the report even when the gate above failed
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-governance-report
+          path: governance-report.html
+
+      # -----------------------------------------------------------------------
+      # OPTIONAL — SARIF into GitHub's Security tab (code scanning).
+      # -----------------------------------------------------------------------
+      # Surfaces findings in the same place engineers already triage security
+      # alerts. Barely 3% of the corpus did this. Delete if you don't use it.
+      - name: Lint to SARIF
+        if: always()
+        run: |
+          npx --yes @stoplight/spectral-cli@6.16.1 lint \
+            -r ruleset/.spectral.yaml \
+            -f sarif \
+            --output spectral.sarif \
+            "openapi.yaml" || true
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: spectral.sarif
+          category: api-governance
+
+  # ===========================================================================
+  # JOB 2 — SECURITY (separate, first-class)
+  # -----------------------------------------------------------------------------
+  # WHY a DEDICATED security job.
+  # Finding: only 14% of pipelines had ANY security rules. Running OWASP checks
+  # in their own job (not buried inside the design lint) makes security a
+  # first-class governance concern with its own pass/fail signal — you can see
+  # at a glance whether an API failed on DESIGN or on SECURITY.
+  # Exemplar: geobeyond/fastgeoapi (separate OWASP job + readable summary).
+  # ===========================================================================
+  security:
+    name: API security (OWASP API Top 10)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # The OWASP ruleset is inherited on purpose from a source with real
+      # provenance, and pinned by exact version — good reuse, unlike inheriting
+      # a generic linter's defaults. `.spectral-security.yaml` extends it.
+      - name: Install the OWASP ruleset (pinned)
+        run: npm install --no-save @stoplight/spectral-owasp-ruleset@2.0.1
+
+      - name: Run the security ruleset
+        # This step IS a gate: a real security finding should fail the build.
+        # `--fail-severity error` blocks only on errors; warnings inform.
+        run: |
+          npx --yes @stoplight/spectral-cli@6.16.1 lint \
+            -r ruleset/.spectral-security.yaml \
+            --fail-severity error \
+            "openapi.yaml"
+
+      - name: Security report to the job summary
+        if: always()
+        run: |
+          npx --yes @stoplight/spectral-cli@6.16.1 lint \
+            -r ruleset/.spectral-security.yaml \
+            -f pretty \
+            "openapi.yaml" >> "$GITHUB_STEP_SUMMARY" 2>&1 || true

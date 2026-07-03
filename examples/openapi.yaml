@@ -1,0 +1,109 @@
+openapi: 3.0.3
+# A small, well-governed example. It PASSES all three blocking (error) rules and
+# most of the warn rules — the shape a spec should be in to merge cleanly.
+info:
+  title: Widgets API
+  version: 1.0.0
+  description: >-
+    The Widgets API lets partners create, read, and retire widgets in the ACME
+    catalog. It is the reference example for the governance-pipeline blueprint:
+    every operation is named and described, errors share one shape, and the API
+    declares how it is secured.
+  contact:
+    name: Widgets Platform Team
+    email: widgets@acme.example
+    url: https://handbook.acme.example/api/widgets
+servers:
+  - url: https://api.acme.example/v1
+paths:
+  /widgets:
+    get:
+      operationId: listWidgets
+      summary: List widgets
+      description: >-
+        Return a paginated list of widgets visible to the caller. Use the
+        `cursor` query parameter to page through results.
+      tags: [Widgets]
+      security:
+        - apiKey: []
+      responses:
+        "200":
+          description: A page of widgets.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WidgetList"
+        "429":
+          description: Too many requests.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      operationId: createWidget
+      summary: Create a widget
+      description: >-
+        Create a new widget in the catalog. Returns the created widget with its
+        server-assigned identifier.
+      tags: [Widgets]
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Widget"
+      responses:
+        "201":
+          description: The created widget.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+        "400":
+          description: The request was invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    Widget:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Server-assigned unique identifier for the widget.
+        name:
+          type: string
+          description: Human-readable widget name shown in the catalog.
+    WidgetList:
+      type: object
+      properties:
+        items:
+          type: array
+          description: The widgets on this page.
+          items:
+            $ref: "#/components/schemas/Widget"
+        cursor:
+          type: string
+          description: Opaque cursor for fetching the next page, if any.
+    Problem:
+      type: object
+      description: RFC 9457 Problem Details error shape shared by all operations.
+      properties:
+        type:
+          type: string
+          description: A URI identifying the problem type.
+        title:
+          type: string
+          description: A short, human-readable summary of the problem.
+        status:
+          type: integer
+          description: The HTTP status code for this occurrence of the problem.

@@ -1,0 +1,214 @@
+# =============================================================================
+# ACME API Design Ruleset  (EXAMPLE — replace "acme" with your organization)
+# -----------------------------------------------------------------------------
+# This is an OWNED, GROUNDED example ruleset, written on purpose to model the
+# blueprint in "The State of Spectral in API Pipelines". It is deliberately NOT
+# `spectral:oas` and NOT a copied template. Every rule below was written to
+# answer a real question — "what does a good API mean HERE?" — and every rule
+# carries a description (the "why") and a documentationUrl (where the "why" is
+# owned and can be argued with). See RULESET.md for the naming convention and
+# the who/what/when/where/why grounding.
+#
+# Severity discipline (this is the important part):
+#   - Only THREE rules are `error` — the few things that genuinely cannot ship.
+#     These are the only rules that will FAIL a build.
+#   - Everything else is `warn` or `info` — it informs without blocking.
+#   - A handful of `info` rules are POSITIVE TWINS of an `error`/`warn` rule:
+#     they fire on the operations that ALREADY comply, so a report can say
+#     "82% already have an operationId" instead of only counting failures.
+#
+# We intentionally do NOT `extends: spectral:oas`. The whole argument of the
+# paper is that inheriting a pile of atomic defaults is not governance. If you
+# want the structural OpenAPI validity checks, layer them EXPLICITLY and own
+# that decision, e.g.:
+#
+#   extends:
+#     - [spectral:oas, off]          # pull in the ruleset but turn it all off...
+#   rules:
+#     oas3-schema: error             # ...then re-enable only the ones you mean.
+# =============================================================================
+
+# Apply these rules only to OpenAPI 3.x documents.
+formats:
+  - oas3
+
+# Shared alias so the "every operation" JSONPath is written once and owned once.
+aliases:
+  Operations:
+    - "$.paths[*][get,put,post,delete,patch,options,head,trace]"
+
+rules:
+  # ---------------------------------------------------------------------------
+  # BLOCKING (error) — the short list that can actually fail a build.
+  # Three rules. Their credibility comes from being few.
+  # ---------------------------------------------------------------------------
+
+  acme-info-contact-required:
+    description: >-
+      Every API MUST name a human or team to reach. An API with no owner is an
+      API no consumer can escalate to and no governance program can hold
+      accountable. This is the one piece of metadata we refuse to ship without.
+    message: "info.contact is required — name the owning team (why: {{path}})"
+    documentationUrl: https://handbook.acme.example/api/rules/info-contact-required
+    severity: error
+    given: "$.info"
+    then:
+      field: contact
+      function: truthy
+
+  acme-ops-operationid-required:
+    description: >-
+      Every operation MUST have an operationId. It is the stable name SDK
+      generators, test tooling, and — increasingly — AI agents use to address
+      the operation. A machine consumer cannot "read between the lines" to guess
+      it, so a missing operationId is a hard failure the moment a non-human
+      consumes the API. This is why it blocks.
+    message: 'Operation is missing an operationId ({{path}})'
+    documentationUrl: https://handbook.acme.example/api/rules/ops-operationid-required
+    severity: error
+    given: "#Operations"
+    then:
+      field: operationId
+      function: truthy
+
+  acme-security-scheme-defined:
+    description: >-
+      The document MUST define at least one securityScheme in components. An
+      OpenAPI that describes no way to authenticate is either wrong or describes
+      an unprotected API — both are things we must catch before merge. Security
+      is the one design concern we treat as non-negotiable.
+    message: 'No securitySchemes defined under components — how is this API protected?'
+    documentationUrl: https://handbook.acme.example/api/rules/security-scheme-defined
+    severity: error
+    given: "$.components"
+    then:
+      field: securitySchemes
+      function: truthy
+
+  # ---------------------------------------------------------------------------
+  # INFORMING (warn) — the majority. These guide without stopping the build.
+  # ---------------------------------------------------------------------------
+
+  acme-info-description-meaningful:
+    description: >-
+      The API description should be more than a placeholder. A one-line stub
+      ("The Foo API") tells a consumer nothing. We ask for at least a paragraph
+      (40+ chars) so the very first thing a developer reads is actually useful.
+      Warns rather than blocks — a thin description is a quality issue, not a
+      ship-stopper.
+    message: 'info.description is missing or too short — write at least a paragraph'
+    documentationUrl: https://handbook.acme.example/api/rules/info-description-meaningful
+    severity: warn
+    given: "$.info"
+    then:
+      field: description
+      function: length
+      functionOptions:
+        min: 40
+
+  acme-ops-summary-required:
+    description: >-
+      Every operation should carry a short summary — the one-line label that
+      shows up in generated docs, catalogs, and search. Missing summaries make
+      the API illegible in every surface that lists operations.
+    message: 'Operation should have a summary ({{path}})'
+    documentationUrl: https://handbook.acme.example/api/rules/ops-summary-required
+    severity: warn
+    given: "#Operations"
+    then:
+      field: summary
+      function: truthy
+
+  acme-ops-description-required:
+    description: >-
+      Every operation should have a description explaining what it does and when
+      to use it. This is the field an agent reads to decide whether to call the
+      operation, so vague or absent descriptions directly degrade machine
+      consumption.
+    message: 'Operation should have a description ({{path}})'
+    documentationUrl: https://handbook.acme.example/api/rules/ops-description-required
+    severity: warn
+    given: "#Operations"
+    then:
+      field: description
+      function: truthy
+
+  acme-naming-path-kebab-case:
+    description: >-
+      Path segments should be lower kebab-case (`/user-profiles`, not
+      `/UserProfiles` or `/user_profiles`). Consistent path casing is the single
+      most visible signal of a coherent API surface and the cheapest thing to
+      get right across a fleet. Path templating params (`{id}`) are exempt.
+    message: 'Path segment is not lower kebab-case: {{property}}'
+    documentationUrl: https://handbook.acme.example/api/rules/naming-path-kebab-case
+    severity: warn
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        # each non-parameter segment must be lowercase kebab
+        match: "^(\\/([a-z0-9]+(-[a-z0-9]+)*|\\{[a-zA-Z0-9_]+\\}))+$"
+
+  acme-schema-property-described:
+    description: >-
+      Object schema properties should be described. An undescribed field forces
+      a human to guess and gives a machine consumer nothing to reason about.
+      This is the field-level version of the operation-description rule and the
+      one most likely to bite agentic consumers.
+    message: 'Schema property has no description ({{path}})'
+    documentationUrl: https://handbook.acme.example/api/rules/schema-property-described
+    severity: warn
+    given: "$.components.schemas[*].properties[*]"
+    then:
+      field: description
+      function: truthy
+
+  acme-responses-problem-shape:
+    description: >-
+      Error responses (4xx/5xx) should be documented with a schema, ideally the
+      shared Problem Details shape from RFC 9457. Consistent, described error
+      bodies are what let a consumer — human or agent — handle failure without
+      reverse-engineering each operation. Warns so teams can adopt incrementally.
+    message: 'Error response {{property}} has no described schema (use the shared Problem shape)'
+    documentationUrl: https://handbook.acme.example/api/rules/responses-problem-shape
+    severity: warn
+    given: "$.paths[*][*].responses[?(@property.match(/^(4|5)\\d\\d$/))].content[*]"
+    then:
+      field: schema
+      function: truthy
+
+  # ---------------------------------------------------------------------------
+  # POSITIVE TWINS (info) — fire on what ALREADY complies, so a governance
+  # report can frame progress ("82% already comply") instead of only deficits.
+  # Same underlying finding, inverted `function`; never blocks. See paper §7.
+  # ---------------------------------------------------------------------------
+
+  acme-ops-operationid-present:
+    description: >-
+      Positive twin of acme-ops-operationid-required. Records the operations
+      that ALREADY have an operationId so the report can show a compliance
+      percentage and a trend line rather than only a pile of violations.
+    message: 'Operation already has an operationId ({{path}})'
+    documentationUrl: https://handbook.acme.example/api/rules/ops-operationid-required
+    severity: info
+    given: "#Operations"
+    then:
+      # `falsy` FAILS (and therefore reports) when the value is present — so this
+      # info-level rule fires on the operations that ALREADY have an operationId.
+      # That is the positive-twin trick: same field, inverted function.
+      field: operationId
+      function: falsy
+
+  acme-ops-description-present:
+    description: >-
+      Positive twin of acme-ops-description-required. Recognizes documented
+      operations so governance can report "X% of operations are described"
+      as a rising line quarter over quarter.
+    message: 'Operation is documented ({{path}})'
+    documentationUrl: https://handbook.acme.example/api/rules/ops-description-required
+    severity: info
+    given: "#Operations"
+    then:
+      # `falsy` reports when the value is present — fires on documented operations.
+      field: description
+      function: falsy

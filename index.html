@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Governance Pipeline — the reference blueprint for API governance in CI</title>
+    <meta name="description" content="The reference blueprint for how an API governance pipeline should actually be built: forkable GitHub Actions, a one-step composite action, and an owned, grounded Spectral ruleset. Assembled from the pieces 1,005 real pipelines each got only partly right. An API Commons tool — free and open." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root {
+        --ink: #1c2530; --muted: #5a6675; --line: #e5e9ef; --bg: #ffffff;
+        --panel: #f7f9fc; --yellow: #ffc107; --yellow-ink: #1c2530; --blue: #3794ff;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+      a { color: var(--blue); }
+      code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .wrap { max-width: 940px; margin: 0 auto; padding: 0 20px; }
+      .topbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+      .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+      .brand img { width: 26px; height: 26px; }
+      .tag { color: var(--muted); font-weight: 500; font-size: 13px; }
+      .topbar nav { margin-left: auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+      .btn-yellow { background: var(--yellow); color: var(--yellow-ink); font-weight: 600; text-decoration: none; padding: 8px 14px; border-radius: 8px; display: inline-block; }
+      .btn-outline { border: 1px solid var(--line); color: var(--ink); text-decoration: none; padding: 8px 14px; border-radius: 8px; display: inline-block; }
+      .hero { padding: 56px 0 28px; }
+      .hero h1 { font-size: 40px; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.02em; }
+      .lede { font-size: 19px; color: #33404f; max-width: 720px; }
+      .cta { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0 8px; }
+      pre { background: #101722; color: #e7eef7; padding: 16px; border-radius: 10px; overflow-x: auto; font-size: 14px; }
+      .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin: 36px 0; }
+      .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+      .stat b { display: block; font-size: 30px; letter-spacing: -0.02em; }
+      .stat span { color: var(--muted); font-size: 14px; }
+      h2 { font-size: 26px; letter-spacing: -0.01em; margin: 44px 0 12px; }
+      table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+      th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      th { color: var(--muted); font-weight: 600; }
+      .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 20px 0; }
+      .feature { border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+      .feature h3 { margin: 0 0 6px; font-size: 17px; }
+      .feature p { margin: 0; color: var(--muted); font-size: 14.5px; }
+      footer { border-top: 1px solid var(--line); margin-top: 56px; padding: 28px 0 48px; color: var(--muted); font-size: 14px; }
+      .foot-tools { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+      .foot-tools a { text-decoration: none; }
+      .table-scroll { overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="/favicon.svg" alt="" />
+        <strong>Governance Pipeline</strong>
+        <span class="tag">pipeline.apicommons.org</span>
+      </div>
+      <nav>
+        <a href="#blueprint">Blueprint</a>
+        <a href="#fork">Fork it</a>
+        <a href="https://apicommons.org/tools/" target="_blank" rel="noopener">API Commons</a>
+        <a class="btn-yellow" href="https://github.com/api-commons/governance-pipeline" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <h1>The pipeline nobody in 1,005 repos fully built.</h1>
+        <p class="lede">
+          API Evangelist read <strong>1,005 real public GitHub pipelines</strong>
+          running <a href="https://github.com/stoplightio/spectral" target="_blank" rel="noopener">Spectral</a>
+          in CI. The maturity ceiling was six out of eight; two repos reached it;
+          <strong>nobody assembled the whole blueprint</strong> — even though every
+          piece of it already ships somewhere in the data. This repo bolts the
+          pieces together so you fork a good fragment instead of the bad one you'd
+          find first.
+        </p>
+        <div class="cta">
+          <a class="btn-yellow" href="https://github.com/api-commons/governance-pipeline" target="_blank" rel="noopener">Get the repo →</a>
+          <a class="btn-outline" href="#blueprint">See the blueprint</a>
+        </div>
+        <pre><code>npx @stoplight/spectral-cli lint -r ruleset/.spectral.yaml examples/openapi.yaml</code></pre>
+      </section>
+
+      <section class="stat-row">
+        <div class="stat"><b>63%</b><span>run the tool's default ruleset — not governing at all</span></div>
+        <div class="stat"><b>14</b><span>of 215 Action users pin by commit; the rest float on <code>@latest</code></span></div>
+        <div class="stat"><b>14%</b><span>have any security rules at all</span></div>
+        <div class="stat"><b>0</b><span>of 1,005 assembled the full blueprint</span></div>
+      </section>
+
+      <section id="blueprint">
+        <h2>The blueprint, decision by decision</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Piece</th><th>The finding it fixes</th><th>Real exemplar</th></tr></thead>
+            <tbody>
+              <tr><td>Gate on the <strong>pull request</strong></td><td>A third lint on push-to-main, after the merge</td><td>vtex/openapi-schemas</td></tr>
+              <tr><td><strong>Path-filter</strong> to spec/ruleset</td><td>Only 22% run only when the spec changed</td><td>mongodb/openapi</td></tr>
+              <tr><td>Spectral <strong>pinned by commit SHA</strong></td><td>Only 14 of 215 pin by commit</td><td>mongodb/openapi</td></tr>
+              <tr><td>An <strong>owned, grounded ruleset</strong></td><td>63% run the defaults</td><td>teamdigitale (national ruleset)</td></tr>
+              <tr><td>A <strong>separate OWASP security job</strong></td><td>Security rules in just 14%</td><td>geobeyond/fastgeoapi</td></tr>
+              <tr><td>A <strong>human-readable report</strong></td><td>Readable report ~7%, SARIF ~3%</td><td>geobeyond/fastgeoapi</td></tr>
+              <tr><td><strong>Sparse blocking</strong> severity</td><td>Untuned defaults or toothless <code>continue-on-error</code></td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="fork">
+        <h2>What you fork</h2>
+        <div class="feature-grid">
+          <div class="feature"><h3>starter/api-governance.yml</h3><p>Copy-paste workflow, every decision commented with the finding it fixes and the real team that proved it.</p></div>
+          <div class="feature"><h3>action.yml</h3><p>A one-step composite action bundling the whole blueprint: spec glob, ruleset path, fail-severity, security on/off.</p></div>
+          <div class="feature"><h3>ruleset/</h3><p>An owned, grounded example ruleset — 11 rules, only 3 blocking, each with a why and a docs link, plus positive twins for progress reporting.</p></div>
+          <div class="feature"><h3>examples/</h3><p>A clean spec and a half-complying one that teaches, so you can watch the pipeline gate and report before you touch your own.</p></div>
+        </div>
+        <pre><code># In your repo
+cp starter/api-governance.yml .github/workflows/
+cp -r ruleset/ .          # then rewrite the rules against YOUR operations</code></pre>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      <div class="foot-tools">
+        <strong style="color:var(--ink)">API Commons tools</strong>
+        <a href="https://reporter.apicommons.org" target="_blank" rel="noopener">Spectral Reporter</a>
+        <a href="https://validator.apicommons.org" target="_blank" rel="noopener">API Validator</a>
+        <a href="https://discover.apicommons.org" target="_blank" rel="noopener">API Discovery</a>
+        <a href="https://documentation.apicommons.org" target="_blank" rel="noopener">API Documentation</a>
+      </div>
+      <p>
+        A project of <a href="https://apievangelist.com" target="_blank" rel="noopener">API Evangelist</a>,
+        maintained openly under <a href="https://apicommons.org" target="_blank" rel="noopener">API Commons</a>.
+        Open source and free to fork; API Evangelist offers expert
+        <a href="https://apievangelist.com/services/" target="_blank" rel="noopener">governance services</a> when you want help.
+      </p>
+    </footer>
+  </body>
+</html>

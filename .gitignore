@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+spectral.json
+spectral-results.json
+governance-report.html

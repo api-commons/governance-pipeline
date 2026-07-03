@@ -1,0 +1,133 @@
+# =============================================================================
+# API Governance — composite GitHub Action
+# -----------------------------------------------------------------------------
+# The whole blueprint bundled so a team can adopt it in ONE step instead of
+# copying and re-wiring the fragments in starter/api-governance.yml. Use the
+# starter workflow when you want every decision visible and editable; use this
+# composite action when you want the good default in a single `uses:`.
+#
+# Usage in a consumer workflow:
+#
+#   jobs:
+#     governance:
+#       runs-on: ubuntu-latest
+#       permissions:
+#         contents: read
+#         security-events: write   # only if sarif: true
+#       steps:
+#         - uses: actions/checkout@v4
+#         - uses: api-commons/governance-pipeline@v1     # (pin by SHA in prod)
+#           with:
+#             spec: "openapi.yaml"
+#             ruleset: "ruleset/.spectral.yaml"
+#             fail-severity: error
+#             security: "true"
+# =============================================================================
+
+name: "API Governance"
+description: "Owned-ruleset Spectral governance with a separate OWASP security pass and a human-readable HTML report."
+author: "API Commons (API Evangelist)"
+branding:
+  icon: "check-circle"
+  color: "yellow"
+
+inputs:
+  spec:
+    description: "Glob or path to the API definition(s) to lint (e.g. openapi.yaml or apis/**/*.yaml)."
+    required: false
+    default: "openapi.yaml"
+  ruleset:
+    description: "Path to your OWNED design ruleset."
+    required: false
+    default: "ruleset/.spectral.yaml"
+  fail-severity:
+    description: "Minimum severity that fails the build: error | warn | info | hint. Keep this at 'error' and keep blocking rules few."
+    required: false
+    default: "error"
+  security:
+    description: "Run the dedicated OWASP API security pass ('true' | 'false')."
+    required: false
+    default: "true"
+  security-ruleset:
+    description: "Path to the security ruleset (extends @stoplight/spectral-owasp-ruleset)."
+    required: false
+    default: "ruleset/.spectral-security.yaml"
+  report:
+    description: "Render the human-readable HTML governance report and upload it as an artifact ('true' | 'false')."
+    required: false
+    default: "true"
+  report-title:
+    description: "Title shown on the HTML report."
+    required: false
+    default: "API Governance Report"
+  # Tool versions are pinned defaults so what runs is chosen on purpose.
+  # Override only when you deliberately move them forward.
+  spectral-version:
+    description: "Exact @stoplight/spectral-cli version to run."
+    required: false
+    default: "6.16.1"
+  owasp-version:
+    description: "Exact @stoplight/spectral-owasp-ruleset version for the security pass."
+    required: false
+    default: "2.0.1"
+  reporter-version:
+    description: "Exact @api-common/spectral-reporter version for the HTML report."
+    required: false
+    default: "0.1.0"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    # DESIGN GOVERNANCE — gate on the owned ruleset, at the chosen severity.
+    - name: Lint against the owned ruleset (gate)
+      shell: bash
+      run: |
+        npx --yes @stoplight/spectral-cli@${{ inputs.spectral-version }} lint \
+          -r "${{ inputs.ruleset }}" \
+          --fail-severity "${{ inputs.fail-severity }}" \
+          "${{ inputs.spec }}"
+
+    # REPORT — always render, even if the gate failed, so a team always has a
+    # human-readable artifact and a progress framing (positive-twin rules).
+    - name: Lint to JSON for the report
+      if: ${{ inputs.report == 'true' && always() }}
+      shell: bash
+      run: |
+        npx --yes @stoplight/spectral-cli@${{ inputs.spectral-version }} lint \
+          -r "${{ inputs.ruleset }}" -f json --output spectral.json \
+          "${{ inputs.spec }}" || true
+
+    - name: Render the HTML governance report
+      if: ${{ inputs.report == 'true' && always() }}
+      shell: bash
+      run: |
+        npx --yes @api-common/spectral-reporter@${{ inputs.reporter-version }} \
+          spectral.json -o governance-report.html \
+          --title "${{ inputs.report-title }}"
+
+    - name: Upload the report artifact
+      if: ${{ inputs.report == 'true' && always() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-governance-report
+        path: governance-report.html
+
+    # SECURITY — separate, first-class OWASP pass. Its own gate.
+    - name: Install the OWASP ruleset (pinned)
+      if: ${{ inputs.security == 'true' }}
+      shell: bash
+      run: npm install --no-save @stoplight/spectral-owasp-ruleset@${{ inputs.owasp-version }}
+
+    - name: Run the OWASP API security pass (gate)
+      if: ${{ inputs.security == 'true' }}
+      shell: bash
+      run: |
+        npx --yes @stoplight/spectral-cli@${{ inputs.spectral-version }} lint \
+          -r "${{ inputs.security-ruleset }}" \
+          --fail-severity "${{ inputs.fail-severity }}" \
+          "${{ inputs.spec }}"

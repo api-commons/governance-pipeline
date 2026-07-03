@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Governance Pipeline">
+  <rect width="32" height="32" rx="6" fill="#1e1e1e"/>
+  <circle cx="8" cy="16" r="3" fill="#3794ff"/>
+  <circle cx="16" cy="16" r="3" fill="#e3b341"/>
+  <circle cx="24" cy="16" r="3" fill="#ffc107"/>
+  <rect x="10.5" y="15" width="3.5" height="2" fill="#8a8a8a"/>
+  <rect x="18.5" y="15" width="3.5" height="2" fill="#8a8a8a"/>
+</svg>

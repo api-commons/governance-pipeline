@@ -1,0 +1,32 @@
+openapi: 3.0.3
+# A spec that HALF-complies, on purpose. Lint it to see the blueprint teach:
+#   - it TRIPS blocking rules (no contact, an op with no operationId, no
+#     securityScheme) so you see what actually fails a build; and
+#   - it also fires POSITIVE TWINS on the parts that are already right, so the
+#     report can say "some operations already have an operationId" rather than
+#     only listing failures. Same run, progress framing.
+info:
+  title: Gadgets API
+  version: 0.1.0
+  # description missing        -> acme-info-description-meaningful (warn)
+  # contact missing            -> acme-info-contact-required       (ERROR, blocks)
+paths:
+  /Gadgets:                    # not kebab-case -> acme-naming-path-kebab-case (warn)
+    get:
+      operationId: listGadgets # present -> positive twin fires (info)
+      summary: List gadgets
+      description: Return all gadgets.
+      responses:
+        "200":
+          description: OK.
+          # error responses undocumented -> acme-responses-problem-shape stays quiet here
+    post:
+      # operationId missing      -> acme-ops-operationid-required (ERROR, blocks)
+      # summary missing          -> acme-ops-summary-required     (warn)
+      # description missing       -> acme-ops-description-required (warn)
+      responses:
+        "500":
+          description: Server error.
+          content:
+            application/json: {}   # no schema -> acme-responses-problem-shape (warn)
+components: {}                     # no securitySchemes -> acme-security-scheme-defined (ERROR, blocks)
