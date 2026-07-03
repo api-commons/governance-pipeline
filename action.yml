@@ -69,7 +69,7 @@ inputs:
   owasp-version:
     description: "Exact @api-common/spectral-owasp-ruleset version for the security pass."
     required: false
-    default: "0.1.0"
+    default: "0.2.0"
   reporter-version:
     description: "Exact @api-common/spectral-reporter version for the HTML report."
     required: false
@@ -82,6 +82,14 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: 20
+
+    # Opt the whole job out of Spectral CLI's install-time analytics (Scarf).
+    # It's anonymized and off by default in spirit, but "know what your pipeline
+    # tools do" is part of running a real governance practice — see
+    # https://github.com/stoplightio/spectral/tree/develop/packages/cli#anonymized-analytics
+    - name: Opt out of Spectral CLI analytics
+      shell: bash
+      run: echo "SCARF_ANALYTICS=false" >> "$GITHUB_ENV"
 
     # DESIGN GOVERNANCE — gate on the owned ruleset, at the chosen severity.
     - name: Lint against the owned ruleset (gate)

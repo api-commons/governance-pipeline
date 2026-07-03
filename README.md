@@ -209,7 +209,7 @@ governance-pipeline/
 | `report` | `true` | Render + upload the HTML governance report |
 | `report-title` | `API Governance Report` | Title on the HTML report |
 | `spectral-version` | `6.16.1` | Pinned Spectral CLI version |
-| `owasp-version` | `2.0.1` | Pinned OWASP ruleset version |
+| `owasp-version` | `0.2.0` | Pinned OWASP ruleset version |
 | `reporter-version` | `0.2.0` | Pinned Spectral Reporter version |
 
 ---
@@ -218,8 +218,15 @@ governance-pipeline/
 
 - **Spectral Action** — `stoplightio/spectral-action@6416fd0` (v0.8.13), SHA-pinned.
 - **Spectral CLI** — `@stoplight/spectral-cli@6.16.1`.
-- **OWASP ruleset** — `@api-common/spectral-owasp-ruleset@0.1.0`.
+- **OWASP ruleset** — `@api-common/spectral-owasp-ruleset@0.2.0`.
 - **HTML report** — `@api-common/spectral-reporter@0.2.0` → [reporter.apicommons.org](https://reporter.apicommons.org).
+
+Know your tools: Spectral CLI collects anonymized install-time analytics
+([details](https://github.com/stoplightio/spectral/tree/develop/packages/cli#anonymized-analytics)).
+The blueprint opts every job out with `SCARF_ANALYTICS=false` — not because the
+data is sensitive, but because knowing what every tool in your pipeline does,
+including the parts it doesn't advertise, is part of running a real governance
+practice.
 
 ---
 

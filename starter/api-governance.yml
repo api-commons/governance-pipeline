@@ -100,6 +100,12 @@ jobs:
         with:
           node-version: 20
 
+      # Opt out of Spectral CLI's install-time analytics (Scarf) — anonymized,
+      # but "know what your pipeline tools do" is part of running a real
+      # governance practice. https://github.com/stoplightio/spectral/tree/develop/packages/cli#anonymized-analytics
+      - name: Opt out of Spectral CLI analytics
+        run: echo "SCARF_ANALYTICS=false" >> "$GITHUB_ENV"
+
       - name: Lint to JSON for the report
         # `|| true`: Spectral exits non-zero on findings; we don't want that to
         # abort BEFORE the report is generated. The Action step above is the
@@ -168,11 +174,17 @@ jobs:
         with:
           node-version: 20
 
+      # Opt out of Spectral CLI's install-time analytics (Scarf) — anonymized,
+      # but "know what your pipeline tools do" is part of running a real
+      # governance practice. https://github.com/stoplightio/spectral/tree/develop/packages/cli#anonymized-analytics
+      - name: Opt out of Spectral CLI analytics
+        run: echo "SCARF_ANALYTICS=false" >> "$GITHUB_ENV"
+
       # The OWASP ruleset is inherited on purpose from a source with real
       # provenance, and pinned by exact version — good reuse, unlike inheriting
       # a generic linter's defaults. `.spectral-security.yaml` extends it.
       - name: Install the OWASP ruleset (pinned)
-        run: npm install --no-save @api-common/spectral-owasp-ruleset@0.1.0
+        run: npm install --no-save @api-common/spectral-owasp-ruleset@0.2.0
 
       - name: Run the security ruleset
         # This step IS a gate: a real security finding should fail the build.
