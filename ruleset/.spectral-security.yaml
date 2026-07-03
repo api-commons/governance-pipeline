@@ -13,11 +13,11 @@
 # reuse; inheriting a generic style-linter's defaults and calling it governance
 # is not. We pin it by exact version in the pipeline (see the workflow).
 #
-#   npm i -D @stoplight/spectral-owasp-ruleset@2.0.1
+#   npm i -D @api-common/spectral-owasp-ruleset@0.1.0
 # =============================================================================
 
 extends:
-  - "@stoplight/spectral-owasp-ruleset"
+  - "@api-common/spectral-owasp-ruleset"
 
 formats:
   - oas3

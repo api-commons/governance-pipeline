@@ -206,7 +206,7 @@ governance-pipeline/
 | `report-title` | `API Governance Report` | Title on the HTML report |
 | `spectral-version` | `6.16.1` | Pinned Spectral CLI version |
 | `owasp-version` | `2.0.1` | Pinned OWASP ruleset version |
-| `reporter-version` | `0.1.0` | Pinned Spectral Reporter version |
+| `reporter-version` | `0.2.0` | Pinned Spectral Reporter version |
 
 ---
 
@@ -214,8 +214,8 @@ governance-pipeline/
 
 - **Spectral Action** — `stoplightio/spectral-action@6416fd0` (v0.8.13), SHA-pinned.
 - **Spectral CLI** — `@stoplight/spectral-cli@6.16.1`.
-- **OWASP ruleset** — `@stoplight/spectral-owasp-ruleset@2.0.1`.
-- **HTML report** — `@api-common/spectral-reporter@0.1.0` → [reporter.apicommons.org](https://reporter.apicommons.org).
+- **OWASP ruleset** — `@api-common/spectral-owasp-ruleset@0.1.0`.
+- **HTML report** — `@api-common/spectral-reporter@0.2.0` → [reporter.apicommons.org](https://reporter.apicommons.org).
 
 ---
 

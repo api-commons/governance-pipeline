@@ -114,7 +114,7 @@ jobs:
       - name: Render the governance report (HTML)
         # @api-common/spectral-reporter -> reporter.apicommons.org
         run: |
-          npx --yes @api-common/spectral-reporter@0.1.0 \
+          npx --yes @api-common/spectral-reporter@0.2.0 \
             spectral.json \
             -o governance-report.html \
             --title "Widgets API — Governance Report"
@@ -172,7 +172,7 @@ jobs:
       # provenance, and pinned by exact version — good reuse, unlike inheriting
       # a generic linter's defaults. `.spectral-security.yaml` extends it.
       - name: Install the OWASP ruleset (pinned)
-        run: npm install --no-save @stoplight/spectral-owasp-ruleset@2.0.1
+        run: npm install --no-save @api-common/spectral-owasp-ruleset@0.1.0
 
       - name: Run the security ruleset
         # This step IS a gate: a real security finding should fail the build.
