@@ -46,9 +46,11 @@ Nobody in 1,005 pipelines had all of these at once. This repo does.
 git clone https://github.com/api-commons/governance-pipeline
 cd governance-pipeline
 
-# 2. Try the ruleset on the two example specs
-npx @stoplight/spectral-cli lint -r ruleset/.spectral.yaml examples/openapi.yaml       # clean
-npx @stoplight/spectral-cli lint -r ruleset/.spectral.yaml examples/openapi-fail.yaml  # teaches
+# 2. Try the ruleset on the example specs (OpenAPI 3.x AND Swagger 2.0)
+npx @stoplight/spectral-cli lint -r ruleset/.spectral.yaml examples/openapi.yaml          # clean 3.x
+npx @stoplight/spectral-cli lint -r ruleset/.spectral.yaml examples/openapi-fail.yaml     # teaches (3.x)
+npx @stoplight/spectral-cli lint -r ruleset/.spectral.yaml examples/swagger-2.0.yaml      # clean 2.0
+npx @stoplight/spectral-cli lint -r ruleset/.spectral.yaml examples/swagger-2.0-fail.yaml # teaches (2.0)
 ```
 
 Then, in **your** repo:
@@ -182,12 +184,14 @@ governance-pipeline/
 │   └── api-governance.yml        Copy-paste workflow, every decision commented
 ├── action.yml                    One-step composite action (inputs below)
 ├── ruleset/
-│   ├── .spectral.yaml            OWNED design ruleset (11 rules, 3 blocking)
+│   ├── .spectral.yaml            OWNED design ruleset (13 rules, 3 blocking; OpenAPI 3.x + Swagger 2.0)
 │   ├── .spectral-security.yaml   Security ruleset (extends OWASP API Top 10)
-│   └── RULESET.md                Naming convention + who/what/when/where/why
+│   └── RULESET.md                Naming convention + who/what/when/where/why + 2.0 support
 ├── examples/
-│   ├── openapi.yaml              A clean, well-governed spec
-│   └── openapi-fail.yaml         A half-complying spec that teaches
+│   ├── openapi.yaml              A clean, well-governed spec (OpenAPI 3.x)
+│   ├── openapi-fail.yaml         A half-complying spec that teaches (OpenAPI 3.x)
+│   ├── swagger-2.0.yaml          The same clean spec in Swagger 2.0
+│   └── swagger-2.0-fail.yaml     The same teaching spec in Swagger 2.0
 ├── index.html                    Landing page for pipeline.apicommons.org
 ├── LICENSE                       Apache-2.0
 └── README.md                     You are here

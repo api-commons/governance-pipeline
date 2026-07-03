@@ -19,6 +19,10 @@
 extends:
   - "@api-common/spectral-owasp-ruleset"
 
+# The inherited OWASP ruleset targets OpenAPI 3.x, so the file-level default
+# stays oas3. Our own house rule below overrides this with its own `formats` so
+# it governs Swagger 2.0 documents too (its check — "does the operation declare
+# security?" — is structurally identical in both versions).
 formats:
   - oas3
 
@@ -35,6 +39,9 @@ rules:
     message: 'Operation does not declare `security` explicitly ({{path}})'
     documentationUrl: https://handbook.acme.example/api/rules/security-operation-declared
     severity: warn
+    # Override the file-level oas3 default so this house rule also governs
+    # Swagger 2.0 — operations and their `security` array are identical in both.
+    formats: [oas2, oas3]
     given: "$.paths[*][get,put,post,delete,patch]"
     then:
       field: security

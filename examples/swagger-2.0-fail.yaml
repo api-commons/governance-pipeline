@@ -1,0 +1,38 @@
+swagger: "2.0"
+# The Swagger 2.0 twin of examples/openapi-fail.yaml — half-complies on purpose.
+#   - it TRIPS the blocking rules (no contact, an op with no operationId, no
+#     securityDefinitions) so you see what actually fails a build; and
+#   - it fires the POSITIVE TWINS on the parts already right, so the report can
+#     frame progress instead of only listing failures.
+# This is the SAME teaching spec as the 3.x fail example, expressed in 2.0
+# structure, to prove the ruleset teaches identically across both formats.
+info:
+  title: Gadgets API
+  version: 0.1.0
+  # description missing        -> acme-info-description-meaningful       (warn)
+  # contact missing            -> acme-info-contact-required             (ERROR, blocks)
+host: api.acme.example
+basePath: /v1
+schemes:
+  - https
+produces:
+  - application/json
+paths:
+  /Gadgets:                    # not kebab-case -> acme-naming-path-kebab-case (warn)
+    get:
+      operationId: listGadgets # present -> positive twin fires (info)
+      summary: List gadgets
+      description: Return all gadgets.
+      responses:
+        "200":
+          description: OK.
+          # error responses undocumented -> problem-shape stays quiet here
+    post:
+      # operationId missing      -> acme-ops-operationid-required        (ERROR, blocks)
+      # summary missing          -> acme-ops-summary-required            (warn)
+      # description missing       -> acme-ops-description-required        (warn)
+      responses:
+        "500":
+          description: Server error.
+          # no schema on the 500 response -> acme-responses-problem-shape-oas2 (warn)
+# no securityDefinitions declared -> acme-security-scheme-defined-oas2 (ERROR, blocks)

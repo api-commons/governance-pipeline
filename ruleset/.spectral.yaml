@@ -28,8 +28,16 @@
 #     oas3-schema: error             # ...then re-enable only the ones you mean.
 # =============================================================================
 
-# Apply these rules only to OpenAPI 3.x documents.
+# Apply these rules to BOTH Swagger/OpenAPI 2.0 and OpenAPI 3.x documents.
+# Spectral auto-detects a document's format (`swagger: "2.0"` -> oas2;
+# `openapi: 3.x` -> oas3) and runs a rule only when the document's format is in
+# the rule's `formats`. Rules below that do NOT declare their own `formats`
+# inherit this list and fire on either version; rules whose STRUCTURE differs
+# between the two versions carry an explicit `formats: [oas2]` / `formats: [oas3]`
+# and ship as a matched pair of twins (suffixed `-oas2` / `-oas3`). See
+# RULESET.md ("Swagger 2.0 support") for the full mapping.
 formats:
+  - oas2
   - oas3
 
 # Shared alias so the "every operation" JSONPath is written once and owned once.
@@ -71,7 +79,11 @@ rules:
       field: operationId
       function: truthy
 
-  acme-security-scheme-defined:
+  # This concept lives in a different place in each format, so it ships as a
+  # matched pair of twins: 3.x keeps its schemes under `components.securitySchemes`,
+  # 2.0 declares them at the root under `securityDefinitions`. Same intent, same
+  # severity, same documentationUrl — only the structure differs.
+  acme-security-scheme-defined-oas3:
     description: >-
       The document MUST define at least one securityScheme in components. An
       OpenAPI that describes no way to authenticate is either wrong or describes
@@ -80,9 +92,26 @@ rules:
     message: 'No securitySchemes defined under components — how is this API protected?'
     documentationUrl: https://handbook.acme.example/api/rules/security-scheme-defined
     severity: error
+    formats: [oas3]
     given: "$.components"
     then:
       field: securitySchemes
+      function: truthy
+
+  acme-security-scheme-defined-oas2:
+    description: >-
+      Swagger 2.0 twin of acme-security-scheme-defined-oas3. In 2.0 the auth
+      schemes are declared at the root under `securityDefinitions` (there is no
+      `components`). The document MUST define at least one. An API that describes
+      no way to authenticate is either wrong or describes an unprotected API —
+      both are things we must catch before merge.
+    message: 'No securityDefinitions declared — how is this API protected?'
+    documentationUrl: https://handbook.acme.example/api/rules/security-scheme-defined
+    severity: error
+    formats: [oas2]
+    given: "$"
+    then:
+      field: securityDefinitions
       function: truthy
 
   # ---------------------------------------------------------------------------
@@ -154,16 +183,25 @@ rules:
       Object schema properties should be described. An undescribed field forces
       a human to guess and gives a machine consumer nothing to reason about.
       This is the field-level version of the operation-description rule and the
-      one most likely to bite agentic consumers.
+      one most likely to bite agentic consumers. The `given` is multipath so the
+      one rule fires on whichever store the format uses — `components.schemas`
+      in 3.x, top-level `definitions` in 2.0 — without needing a twin.
     message: 'Schema property has no description ({{path}})'
     documentationUrl: https://handbook.acme.example/api/rules/schema-property-described
     severity: warn
-    given: "$.components.schemas[*].properties[*]"
+    given:
+      - "$.components.schemas[*].properties[*]"   # OpenAPI 3.x
+      - "$.definitions[*].properties[*]"          # Swagger 2.0
     then:
       field: description
       function: truthy
 
-  acme-responses-problem-shape:
+  # The error-response body is reached differently in each format, so this ships
+  # as twins: 3.x carries the schema inside a per-media-type `content` map, 2.0
+  # hangs a single `schema` directly off the response object (media types live in
+  # the operation/root `produces` list, not per-response). Same intent, same
+  # severity, same documentationUrl.
+  acme-responses-problem-shape-oas3:
     description: >-
       Error responses (4xx/5xx) should be documented with a schema, ideally the
       shared Problem Details shape from RFC 9457. Consistent, described error
@@ -172,7 +210,24 @@ rules:
     message: 'Error response {{property}} has no described schema (use the shared Problem shape)'
     documentationUrl: https://handbook.acme.example/api/rules/responses-problem-shape
     severity: warn
+    formats: [oas3]
     given: "$.paths[*][*].responses[?(@property.match(/^(4|5)\\d\\d$/))].content[*]"
+    then:
+      field: schema
+      function: truthy
+
+  acme-responses-problem-shape-oas2:
+    description: >-
+      Swagger 2.0 twin of acme-responses-problem-shape-oas3. In 2.0 a response
+      carries its body schema directly (there is no per-media-type `content`
+      map). Error responses (4xx/5xx) should still document that schema, ideally
+      the shared Problem Details shape from RFC 9457, so consumers can handle
+      failure without reverse-engineering each operation.
+    message: 'Error response {{property}} has no described schema (use the shared Problem shape)'
+    documentationUrl: https://handbook.acme.example/api/rules/responses-problem-shape
+    severity: warn
+    formats: [oas2]
+    given: "$.paths[*][*].responses[?(@property.match(/^(4|5)\\d\\d$/))]"
     then:
       field: schema
       function: truthy
