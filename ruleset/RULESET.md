@@ -33,6 +33,13 @@ Every rule id follows one pattern, so a reader can place any finding instantly:
 - **`<constraint>`** — the check being made (`required`, `meaningful`,
   `kebab-case`, `present`).
 
+> The canonical API Commons rule-id convention is **Spec / Version / Property /
+> Semantics / Severity** (`<spec>-<version>-<property>-<semantics>-<severity>`),
+> as defined in the [Spectral Ruleset Studio](https://studio.apicommons.org) and
+> the *Governance of APIs* naming-convention chapter. The `<org>`-prefixed scheme
+> here is a domain-scoped variant of it — it leads with the owning org so a
+> finding announces *whose* rule it is.
+
 Positive twins reuse the same id with a `-present`/positive constraint so it is
 obvious they are the mirror of a negative rule.
 
