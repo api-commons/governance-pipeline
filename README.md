@@ -16,10 +16,6 @@ around the scrapyard; no one has bolted them together.
 So this repo bolts them together. It is a **teaching artifact you fork**: copy a
 good fragment instead of the bad one you'd otherwise find first.
 
-Part of the [API Commons tools](https://apicommons.org/tools/), alongside
-[Spectral Reporter](https://reporter.apicommons.org) and
-[API Validator](https://validator.apicommons.org).
-
 ---
 
 ## The blueprint, one line each
@@ -227,6 +223,20 @@ The blueprint opts every job out with `SCARF_ANALYTICS=false` — not because th
 data is sensitive, but because knowing what every tool in your pipeline does,
 including the parts it doesn't advertise, is part of running a real governance
 practice.
+
+---
+
+## Part of API Commons
+
+An open, forkable governance blueprint from **[API Commons](https://apicommons.org)** — free and Apache-2.0. Browse the full set of tools at **[apicommons.org/tools](https://apicommons.org/tools/)**.
+
+**Related tools**
+- [Governance Pipeline Auditor](https://auditor.apicommons.org) — audit a repo's Spectral CI maturity against the 8-point rubric
+- [Spectral Reporter](https://reporter.apicommons.org) — Spectral JSON → self-contained HTML report
+- [Spectral OWASP Ruleset](https://github.com/api-commons/spectral-owasp-ruleset) — the OWASP API Security layer
+- [Spectral Ruleset Studio](https://studio.apicommons.org) — turn a style guide into an owned ruleset
+- [Ruleset Commons](https://rulesets.apicommons.org) — adopt a provenanced ruleset by reference
+- [API Validator](https://validator.apicommons.org) — lint OpenAPI/AsyncAPI/Arazzo/JSON Schema in your browser
 
 ---
 
